@@ -26,7 +26,6 @@ class Game {
       if ($this.Key -eq [Keymap]::R) { $this.Map.Load() }
       if ($this.Key -eq [Keymap]::S) { $this.Map.Save() }
       if ($this.Key -eq [Keymap]::H) { $this.Message = 1 }
-
     } until ($this.Key -eq [Keymap]::ESC -or $this.Key -eq [Keymap]::Q)
 
     $this.Map.Save()
