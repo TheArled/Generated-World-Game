@@ -5,7 +5,7 @@ class Game {
 
   $Map = $null
   [int]$Key = $null
-  [int]$Message = 0
+  [int]$Message = $null
 
   [void]Run($h) {
     # Prompt user to start
@@ -18,9 +18,15 @@ class Game {
     # Game Loop
     do {
       $this.Map.Draw()
-      if ($null -ne $this.Message) { $this.WriteMessage() }
-
+      $this.WriteMessage()
+      Write-Host 'Press w,a,s,d to move or h for help' -ForegroundColor White
       $this.ReadKey($h)
+
+      if ($this.Key -eq [Keymap]::N) { $this.Map.Generate() }
+      if ($this.Key -eq [Keymap]::R) { $this.Map.Load() }
+      if ($this.Key -eq [Keymap]::S) { $this.Map.Save() }
+      if ($this.Key -eq [Keymap]::H) { $this.Message = 1 }
+
     } until ($this.Key -eq [Keymap]::ESC -or $this.Key -eq [Keymap]::Q)
 
     $this.Map.Save()
@@ -35,7 +41,6 @@ class Game {
 
   [void]WriteMessage() {
     switch ($this.Message) {
-      0 { Write-Host 'Press w,a,s,d to move or h for help' -ForegroundColor White }
       1 {
         Write-Host 'Move: w, a, s, d' -ForegroundColor Yellow
         Write-Host 'Quit/New: q, n' -ForegroundColor Yellow
