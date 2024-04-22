@@ -1,129 +1,135 @@
+# Initialize variables
 $map = ""
-$square = 5
-$plots = $square * $square
-$pos = ($plots - 1) / 2
-$lands = "[ ]", "[#]", "[o]", "[+]", "[*]", "Null"
+$render = 9 # Has to be uneven number for center position to work
+$patches = $render * $render
+$pos = ($patches - 1) / 2
+$terrain = "   ", "[#]", "[o]", "[+]", "[*]", "Null" # Random number generator never returns last element, so it's unused
+$key = $null
 
-Read-Host "Press Enter to start"
-
-for ($i = 0; $i -lt $plots; $i++) {
-    $randomNumber = Get-Random -Minimum 0 -Maximum 100
-    if ($randomNumber -lt 60) {
-        $map += 0
+# Generate map function
+function GenerateMap($pos, $patches, $terrain) {
+    $map = ""
+    for ($i = 0; $i -lt $patches; $i++) {
+        if ($i -eq $pos) { $map += 0 }
+        else { $map += GeneratePatch $terrain }
     }
-    else {
-        $map += (Get-Random -Minimum 1 -Maximum ($lands.Count - 1))
-    }
+    return $map
 }
 
-for (; ; ) {
+# Generate patch function
+function GeneratePatch($terrain) {
+    $r = Get-Random -Minimum 0 -Maximum 100
+    if ($r -lt 60) { return 0 }
+    else { return (Get-Random -Minimum 1 -Maximum ($terrain.Count - 1)) }
+}
+
+# Draw map function
+function DrawMap($map, $render, $patches, $pos, $terrain) {
     Clear-Host
-
-    for ($i = 0; $i -lt $plots; ) {
-        if ($i -eq $pos) {
-            Write-Host " X " -NoNewline
+    $line = ""
+    for ($i = 0; $i -lt $patches; ) {
+        if ($i -eq $pos) { $line += " X " }
+        else { $line += $terrain[[string]$map[$i]] }
+        if (++$i % $render -eq 0) {
+            Write-Host $line
+            $line = ""
         }
-        else {
-            Write-Host $lands[[string]$map[$i]] -NoNewline
-        }
-        
-        if (++$i % $square -eq 0) {
-            Write-Host ""
-        }
-    }
-
-    Write-Host ""
-    $move = Read-Host "Move (w, a, s, d, q, r)"
-    
-    if ($move -eq "q") { break }
-
-    if ($move -eq "r") {
-        $map = ""
-        for ($i = 0; $i -lt $plots; $i++) {
-            $randomNumber = Get-Random -Minimum 0 -Maximum 100
-            if ($randomNumber -lt 60) {
-                $map += 0
-            }
-            else {
-                $map += (Get-Random -Minimum 1 -Maximum ($lands.Count - 1))
-            }
-        }
-    }
-
-    if ($move -eq "w") {
-        if ($map[$pos - $square] -ne "0") {
-            continue
-        }
-
-        $chunk = ''
-        for ($i = 0; $i -lt $square; $i++) {
-            $randomNumber = Get-Random -Minimum 0 -Maximum 100
-            if ($randomNumber -lt 60) {
-                $chunk += 0
-            }
-            else {
-                $chunk += (Get-Random -Minimum 1 -Maximum ($lands.Count - 1))
-            }
-        }
-        $map = $chunk + $map.Substring(0, $plots - $square)
-    }
-
-    if ($move -eq "s") {
-        if ($map[$pos + $square] -ne "0") {
-            continue
-        }
-
-        $chunk = ''
-        for ($i = 0; $i -lt $square; $i++) {
-            $randomNumber = Get-Random -Minimum 0 -Maximum 100
-            if ($randomNumber -lt 60) {
-                $chunk += 0
-            }
-            else {
-                $chunk += (Get-Random -Minimum 1 -Maximum ($lands.Count - 1))
-            }
-        }
-        $map = $map.Substring($square, $plots - $square) + $chunk
-    }
-
-    if ($move -eq "a") {
-        if ($map[$pos - 1] -ne "0") {
-            continue
-        }
-
-        $newMap = ''
-        for ($i = 0; $i -lt $square; $i++) {
-            $randomNumber = Get-Random -Minimum 0 -Maximum 100
-            if ($randomNumber -lt 60) {
-                $newMap += 0
-            }
-            else {
-                $newMap += (Get-Random -Minimum 1 -Maximum ($lands.Count - 1))
-            }
-            $newMap += $map.Substring($i * $square, $square - 1)
-        }
-        $map = $newMap
-    }
-
-    if ($move -eq "d") {
-        if ($map[$pos + 1] -ne "0") {
-            continue
-        }
-
-        $newMap = ''
-        for ($i = 0; $i -lt $square; $i++) {
-            $newMap += $map.Substring($i * $square + 1, $square - 1)
-            $randomNumber = Get-Random -Minimum 0 -Maximum 100
-            if ($randomNumber -lt 70) {
-                $newMap += 0
-            }
-            else {
-                $newMap += (Get-Random -Minimum 1 -Maximum ($lands.Count - 1))
-            }
-        }
-
-        $map = $newMap
     }
 }
 
-Write-Host "Thanks for exploring!"
+# Move up function
+function MoveUp($map, $render, $pos) {
+    if ($map[$pos - $render] -ne "0") { continue }
+    $chunk = ""
+    for ($i = 0; $i -lt $render; $i++) { $chunk += GeneratePatch $terrain }
+    return $chunk + $map.Substring(0, $patches - $render)
+}
+
+# Move down function
+function MoveDown($map, $render, $pos) {
+    if ($map[$pos + $render] -ne "0") { continue }
+    $chunk = ""
+    for ($i = 0; $i -lt $render; $i++) { $chunk += GeneratePatch $terrain }
+    return $map.Substring($render, $patches - $render) + $chunk
+}
+
+# Move left function
+function MoveLeft($map, $render, $pos) {
+    if ($map[$pos - 1] -ne "0") { continue }
+    $newMap = ""
+    for ($i = 0; $i -lt $render; $i++) {
+        $newMap += GeneratePatch $terrain
+        $newMap += $map.Substring($i * $render, $render - 1)
+    }
+    return $newMap
+}
+
+# Move right function
+function MoveRight($map, $render, $pos) {
+    if ($map[$pos + 1] -ne "0") { continue }
+    $newMap = ""
+    for ($i = 0; $i -lt $render; $i++) {
+        $newMap += $map.Substring($i * $render + 1, $render - 1)
+        $newMap += GeneratePatch $terrain
+    }
+    return $newMap
+}
+
+function LoadGame($pos, $patches, $terrain) {
+    if (Test-Path -Path "./save.txt") {
+        return Get-Content -Path "./save.txt"
+    }
+    return GenerateMap $pos $patches $terrain
+}
+
+# Save game function
+function SaveGame($map) {
+    Set-Content -Path "./save.txt" -Value $map
+}
+
+# Prompt user to start
+Write-Host "Press Enter to start"
+do {
+    $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown").VirtualKeyCode
+    
+    if ($key -eq 27 -or $key -eq 81) { exit }
+} until ($key -eq 13)
+
+# Generate map
+$map = GenerateMap $pos $patches $terrain
+
+# Game loop
+do {
+    # Draw the map
+    DrawMap $map $render $patches $pos $terrain
+
+    # Prompt user for next action
+    Write-Host "Press w,a,s,d to move or q to quit"
+    $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown").VirtualKeyCode
+
+    # Regenerate the map
+    if ($key -eq 82) { $map = GenerateMap $pos $patches $terrain }
+
+    # Load save
+    if ($key -eq 73) { $map = LoadGame $pos $patches $terrain }
+    
+    # Save game
+    if ($key -eq 69) { SaveGame $map }
+
+    # Move up
+    if ($key -eq 87 -or $key -eq 38) { $map = MoveUp $map $render $pos }
+
+    # Move down
+    if ($key -eq 83 -or $key -eq 40) { $map = MoveDown $map $render $pos }
+
+    # Move left
+    if ($key -eq 65 -or $key -eq 37) { $map = MoveLeft $map $render $pos }
+
+    # Move right
+    if ($key -eq 68 -or $key -eq 39) { $map = MoveRight $map $render $pos }
+
+    # Quit game
+} until ($key -eq 27 -or $key -eq 81)
+
+# Game end message
+Write-Host "Thank you for exploring!"
