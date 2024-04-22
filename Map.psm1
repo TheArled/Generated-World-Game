@@ -1,5 +1,7 @@
 class Map {
   Map() {
+    $this.RenderWidth = $this.RenderX * 2 + 1
+    $this.RenderHeight = $this.RenderX * 2 + 1
     $this.Load()
   }
 
@@ -11,8 +13,8 @@ class Map {
   [int]$RenderWidth = $null
   [int]$RenderHeight = $null
 
-  [int]$RenderX = 3
-  [int]$RenderY = 3
+  [int]$RenderX = 4
+  [int]$RenderY = 4
   [array]$Terrain = '   ', '[#]', '[o]', '[+]', '[*]', 'Null' # Random number generator never returns last element, so it's unused
 
   [void]Load() {
@@ -33,8 +35,6 @@ class Map {
 
   [void]Generate() {
     $this.Map = ''
-    $this.RenderWidth = $this.RenderX * 2 + 1
-    $this.RenderHeight = $this.RenderX * 2 + 1
     $this.Width = $this.RenderWidth
     $this.Height = $this.RenderHeight
     $this.Position = ($this.Width * $this.Height - 1) / 2
