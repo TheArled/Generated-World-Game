@@ -1,11 +1,14 @@
 class Map {
   Map() {
+    $this.Path = Join-Path $PSScriptRoot 'save'
     $this.RenderWidth = $this.RenderX * 2 + 1
     $this.RenderHeight = $this.RenderY * 2 + 1
     $this.Load()
   }
 
-  [string]$Path = "$PSScriptRoot\save"
+  [string]$Path = $null
+  [string]$Separator = ' '
+
   [string]$Map = $null
   [int]$Width = $null
   [int]$Height = $null
@@ -14,12 +17,12 @@ class Map {
   [int]$RenderHeight = $null
 
   [int]$RenderX = 3
-  [int]$RenderY = 2
+  [int]$RenderY = 3
   [array]$Terrain = '   ', '[#]', '[o]', '[+]', '[*]', 'Null' # Random number generator never returns last element, so it's unused
 
   [void]Load() {
     if (Test-Path -Path $this.Path) {
-      $Data = (Get-Content -Path $this.Path) -Split ';'
+      $Data = (Get-Content -Path $this.Path) -Split $this.Separator
       $this.Width = $Data[0]
       $this.Height = $Data[1]
       $this.Position = $Data[2]
@@ -30,7 +33,7 @@ class Map {
   }
 
   [void]Save() {
-    Set-Content -Path $this.Path -Value ($this.Width, $this.Height, $this.Position, $this.Map -Join ';') 
+    Set-Content -Path $this.Path -Value ($this.Width, $this.Height, $this.Position, $this.Map -Join $this.Separator) 
   }
 
   [void]Generate() {

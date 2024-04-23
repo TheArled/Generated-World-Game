@@ -1,5 +1,5 @@
-Import-Module "$PSScriptRoot\Game.psm1"
-Import-Module "$PSScriptRoot\Map.psm1" -Global
+Join-Path $PSScriptRoot 'Entities\Game.psm1' | Import-Module
+Join-Path $PSScriptRoot 'Entities\Map.psm1' | Import-Module -Global
 
 $Game = NewGame
 $Game.Run($host)
