@@ -1,51 +1,47 @@
 class Game {
   Game() {
     $this.Map = NewMap
+    $this.Keymap = GetKeymap
   }
 
   $Map = $null
   [int]$Key = $null
   [int]$Message = $null
-  [hashtable]$Keymap = @{
-    ENTER = 13
-    ESC   = 27
-    Q     = 81
-    N     = 78
-    E     = 69
-    R     = 82
-    L     = 108
-    H     = 72
-    UP    = 38
-    DOWN  = 40
-    LEFT  = 37
-    RIGHT = 39
-    W     = 87
-    S     = 83
-    A     = 65
-    D     = 68
-  }
+  [hashtable]$Keymap = $null
 
   [void]Run($h) {
-    $this.StartScreen($h)
-    $this.GameLoop($h)
-    $this.EndScreen($h)
+    $this._StartScreen($h)
+    $this._GameLoop($h)
+    $this._EndScreen($h)
   }
 
-  [void]StartScreen($h) {
+  [void]_StartScreen($h) {
+    $Start = $False
     Write-Host "Press Enter to start" -ForegroundColor Green
     do {
-      $this.ReadKey($h)
-      if ($this.Key -eq $this.Keymap.ESC -or $this.Key -eq $this.Keymap.Q) { exit }
-    } until ($this.Key -eq $this.Keymap.Enter)
+      $this._ReadKey($h)
+
+      switch ($this.Key) {
+        $this.Keymap.HAT {
+          Write-Host 'Press any key:'
+          $this._ReadKey($h)
+          Write-Host ('Keycode: ' + $this.Key) -ForegroundColor Yellow
+        }
+        $this.Keymap.ESC { exit }
+        $this.Keymap.Q { exit }
+        $this.Keymap.ENTER { $Start = $True }
+      }
+    } until ($Start)
   }
 
-  [void]GameLoop($h) {
-    $End = $false
+  [void]_GameLoop($h) {
+    $End = $False
     do {
       $this.Map.Draw()
-      $this.WriteMessage()
+      $this._WriteMessage()
+      Start-Sleep -Milliseconds 1 # Prevents player to pass through walls when moving too fast
       Write-Host 'Press w,a,s,d to move or h for help' -ForegroundColor White
-      $this.ReadKey($h)
+      $this._ReadKey($h)
 
       switch ($this.Key) {
         $this.Keymap.N { $this.Map.New() }
@@ -53,30 +49,31 @@ class Game {
         $this.Keymap.L { $this.Map.Load() }
         $this.Keymap.S { $this.Map.Save() }
         $this.Keymap.H { $this.Message = 1 }
-        $this.Keymap.UP { $this.Map.MoveUp() }
-        $this.Keymap.DOWN { $this.Map.MoveDown() }
-        $this.Keymap.LEFT { $this.Map.MoveLeft() }
-        $this.Keymap.RIGHT { $this.Map.MoveRight() }
-        $this.Keymap.W { $this.Map.MoveUp() }
-        $this.Keymap.A { $this.Map.MoveLeft() }
-        $this.Keymap.S { $this.Map.MoveDown() }
-        $this.Keymap.D { $this.Map.MoveRight() }
-        $this.Keymap.ESC { $End = $true }
-        $this.Keymap.Q { $End = $true }
+        $this.Keymap.UP { $this.Message = $this.Map.MoveUp() }
+        $this.Keymap.DOWN { $this.Message = $this.Map.MoveDown() }
+        $this.Keymap.LEFT { $this.Message = $this.Map.MoveLeft() }
+        $this.Keymap.RIGHT { $this.Message = $this.Map.MoveRight() }
+        $this.Keymap.W { $this.Message = $this.Map.MoveUp() }
+        $this.Keymap.A { $this.Message = $this.Map.MoveLeft() }
+        $this.Keymap.S { $this.Message = $this.Map.MoveDown() }
+        $this.Keymap.D { $this.Message = $this.Map.MoveRight() }
+        $this.Keymap.ESC { $End = $True }
+        $this.Keymap.Q { $End = $True }
       }
     } until ($End)
   }
 
-  [void]EndScreen($h) {
+  [void]_EndScreen($h) {
     $this.Map.Save()
     Write-Host "Thank you for exploring!" -ForegroundColor Green
   }
 
-  [void]ReadKey($h) {
+  [void]_ReadKey($h) {
+    $this.Key = $null
     $this.Key = $h.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown").VirtualKeyCode
   }
 
-  [void]WriteMessage() {
+  [void]_WriteMessage() {
     switch ($this.Message) {
       1 {
         Write-Host 'Move: w, a, s, d' -ForegroundColor Yellow

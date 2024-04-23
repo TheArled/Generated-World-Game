@@ -19,6 +19,7 @@ class Map {
   [int]$RenderX = 5
   [int]$RenderY = 4
   [array]$Terrain = '   ', '[#]', '[o]', '[+]', '[*]', 'Null' # Random number generator never returns last element, so it's unused
+  [array]$Frame = @()
 
   [void]Load() {
     if (Test-Path -Path $this.Path) {
@@ -42,103 +43,125 @@ class Map {
     for ($y = 0; $y -lt $this.Height; $y++) {
       for ($x = 0; $x -lt $this.Width; $x++) {
         if (($x * $y - 1) / 2 -eq $this.Position) { $this.Map += 0 }
-        else { $this.Map += $this.NewPatch() }
+        else { $this.Map += $this._NewPatch() }
       }
     }
   }
 
-  [string]NewChunk() {
+  [string]_NewChunk() {
     $Chunk = ''
     for ($i = 0; $i -lt $this.Width; $i++) {
-      $Chunk += $this.NewPatch()
+      $Chunk += $this._NewPatch()
     }
     return $Chunk
   }
 
-  [string]NewPatch() {
+  [string]_NewPatch() {
     $r = Get-Random -Minimum 0 -Maximum 100
     if ($r -lt 60) { return 0 }
     else { return (Get-Random -Minimum 1 -Maximum ($this.Terrain.Count - 1)) }
   }
 
   [void]Draw() {
-    $this.DetectEdges()
+    $this._RenderFrame()
+    $this._DrawFrame()
+  }
 
+  [void]_RenderFrame() {
     $RenderRow = $this.Position - $this.RenderX - ($this.Width * $this.RenderY)
     $RenderPosition = $RenderRow
-    Clear-Host
+    $this.Frame = @()
     for ($y = 0; $y -lt $this.RenderHeight; $y++) {
-      $Line = ''
+      $this.Frame += ''
       for ($x = 0; $x -lt $this.RenderWidth; $x++) {
-        if ($RenderPosition -eq $this.Position) { $Line += ' X ' }
-        else { $Line += $this.Terrain[[string]$this.Map[$RenderPosition]] }
+        if ($RenderPosition -eq $this.Position) { $this.Frame[$y] += ' X ' }
+        else { $this.Frame[$y] += $this.Terrain[[string]$this.Map[$RenderPosition]] }
         $RenderPosition++
       }
-      foreach ($Part in $Line -Split '(X)') {
-        if ($Part -eq 'X') { Write-Host $Part -ForegroundColor Blue -NoNewline }
-        else { Write-Host $Part -ForegroundColor Gray -NoNewline }
-      }
-      Write-Host ''
       $RenderRow = $RenderRow + $this.Width
       $RenderPosition = $RenderRow
     }
   }
 
-  # Calculate distance to edges relative to player
-  [int]GetTopEdge() { return [Math]::Floor($this.Position / $this.Width) }
-  [int]GetBottomEdge() { return [Math]::Floor(($this.Width * $this.Height - $this.Position - 1) / $this.Width) }
-  [int]GetLeftEdge() { return $this.Position - $this.GetTopEdge() * $this.Width }
-  [int]GetRightEdge() { return ($this.GetTopEdge() + 1) * $this.Width - $this.Position - 1 }
-
-  [void]DetectEdges() {
-    $this.DetectTopEdge()
-    $this.DetectBottomEdge()
-    $this.DetectLeftEdge()
-    $this.DetectRightEdge()
+  [void]_DrawFrame() {
+    Clear-Host
+    foreach ($Line in $this.Frame) {
+      foreach ($Part in $Line -Split '(X)') {
+        if ($Part -eq 'X') { Write-Host $Part -ForegroundColor Blue -NoNewline }
+        else { Write-Host $Part -ForegroundColor Gray -NoNewline }
+      }
+      Write-Host ''
+    }
   }
 
-  [void]DetectTopEdge() {
-    if ($this.GetTopEdge() -lt $this.RenderY) {
-      $this.Map = $this.NewChunk() + $this.Map
+  [int]MoveUp() {
+    if ($this.Map[$this.Position - $this.Width] -ne [string]0) { return 2 }
+    $this.Position -= $this.Width
+    $this._DetectTopEdge()
+    return 0
+  }
+  [int]MoveDown() {
+    if ($this.Map[$this.Position + $this.Width] -ne [string]0) { return 2 }
+    $this.Position += $this.Width
+    $this._DetectBottomEdge()
+    return 0
+  }
+  [int]MoveLeft() {
+    if ($this.Map[$this.Position - 1] -ne [string]0) { return 2 }
+    $this.Position--
+    $this._DetectLeftEdge()
+    return 0
+  }
+  [int]MoveRight() {
+    if ($this.Map[$this.Position + 1] -ne [string]0) { return 2 }
+    $this.Position++
+    $this._DetectRightEdge()
+    return 0
+  }
+  
+  # Calculate distance to edges relative to player
+  [int]_GetTopEdge() { return [Math]::Floor($this.Position / $this.Width) }
+  [int]_GetBottomEdge() { return [Math]::Floor(($this.Width * $this.Height - $this.Position - 1) / $this.Width) }
+  [int]_GetLeftEdge() { return $this.Position - $this._GetTopEdge() * $this.Width }
+  [int]_GetRightEdge() { return ($this._GetTopEdge() + 1) * $this.Width - $this.Position - 1 }
+
+  [void]_DetectTopEdge() {
+    if ($this._GetTopEdge() -lt $this.RenderY) {
+      $this.Map = $this._NewChunk() + $this.Map
       $this.Height++
       $this.Position += $this.Width
     }
   }
-  [void]DetectBottomEdge() {
-    if ($this.GetBottomEdge() -lt $this.RenderY) {
-      $this.Map = $this.Map + $this.NewChunk()
+  [void]_DetectBottomEdge() {
+    if ($this._GetBottomEdge() -lt $this.RenderY) {
+      $this.Map = $this.Map + $this._NewChunk()
       $this.Height++
     }
   }
-  [void]DetectLeftEdge() {
-    if ($this.GetLeftEdge() -lt $this.RenderX) {
+  [void]_DetectLeftEdge() {
+    if ($this._GetLeftEdge() -lt $this.RenderX) {
       $newMap = ''
       for ($i = 0; $i -lt $this.Height; $i++) {
-        $newMap += $this.NewPatch()
+        $newMap += $this._NewPatch()
         $newMap += $this.Map.Substring($i * $this.Width, $this.Width)
       }
       $this.Width++
-      $this.Position = $this.Position + $this.GetTopEdge() + 1
+      $this.Position = $this.Position + $this._GetTopEdge() + 1
       $this.Map = $newMap
     }
   }
-  [void]DetectRightEdge() {
-    if ($this.GetRightEdge() -lt $this.RenderX) {
+  [void]_DetectRightEdge() {
+    if ($this._GetRightEdge() -lt $this.RenderX) {
       $newMap = ''
       for ($i = 0; $i -lt $this.Height; $i++) {
         $newMap += $this.Map.Substring($i * $this.Width, $this.Width)
-        $newMap += $this.NewPatch()
+        $newMap += $this._NewPatch()
       }
       $this.Width++
-      $this.Position = $this.Position + $this.GetTopEdge()
+      $this.Position = $this.Position + $this._GetTopEdge()
       $this.Map = $newMap
     }
   }
-
-  [void]MoveUp() { $this.Position -= $this.Width }
-  [void]MoveDown() { $this.Position += $this.Width }
-  [void]MoveLeft() { $this.Position-- }
-  [void]MoveRight() { $this.Position++ }
 }
 
 Function NewMap() {
