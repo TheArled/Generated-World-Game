@@ -16,8 +16,8 @@ class Map {
   [int]$RenderWidth = $null
   [int]$RenderHeight = $null
 
-  [int]$RenderX = 3
-  [int]$RenderY = 3
+  [int]$RenderX = 5
+  [int]$RenderY = 4
   [array]$Terrain = '   ', '[#]', '[o]', '[+]', '[*]', 'Null' # Random number generator never returns last element, so it's unused
 
   [void]Load() {
@@ -27,16 +27,14 @@ class Map {
       $this.Height = $Data[1]
       $this.Position = $Data[2]
       $this.Map = $Data[3]
-      return
     }
-    $this.Generate()
+    else { $this.New() }
   }
-
   [void]Save() {
     Set-Content -Path $this.Path -Value ($this.Width, $this.Height, $this.Position, $this.Map -Join $this.Separator) 
   }
 
-  [void]Generate() {
+  [void]New() {
     $this.Map = ''
     $this.Width = $this.RenderWidth
     $this.Height = $this.RenderHeight
@@ -44,18 +42,28 @@ class Map {
     for ($y = 0; $y -lt $this.Height; $y++) {
       for ($x = 0; $x -lt $this.Width; $x++) {
         if (($x * $y - 1) / 2 -eq $this.Position) { $this.Map += 0 }
-        $this.Map += $this.NewPatch()
+        else { $this.Map += $this.NewPatch() }
       }
     }
   }
 
-  [int]NewPatch() {
+  [string]NewChunk() {
+    $Chunk = ''
+    for ($i = 0; $i -lt $this.Width; $i++) {
+      $Chunk += $this.NewPatch()
+    }
+    return $Chunk
+  }
+
+  [string]NewPatch() {
     $r = Get-Random -Minimum 0 -Maximum 100
     if ($r -lt 60) { return 0 }
     else { return (Get-Random -Minimum 1 -Maximum ($this.Terrain.Count - 1)) }
   }
 
   [void]Draw() {
+    $this.DetectEdges()
+
     $RenderRow = $this.Position - $this.RenderX - ($this.Width * $this.RenderY)
     $RenderPosition = $RenderRow
     Clear-Host
@@ -75,6 +83,62 @@ class Map {
       $RenderPosition = $RenderRow
     }
   }
+
+  # Calculate distance to edges relative to player
+  [int]GetTopEdge() { return [Math]::Floor($this.Position / $this.Width) }
+  [int]GetBottomEdge() { return [Math]::Floor(($this.Width * $this.Height - $this.Position - 1) / $this.Width) }
+  [int]GetLeftEdge() { return $this.Position - $this.GetTopEdge() * $this.Width }
+  [int]GetRightEdge() { return ($this.GetTopEdge() + 1) * $this.Width - $this.Position - 1 }
+
+  [void]DetectEdges() {
+    $this.DetectTopEdge()
+    $this.DetectBottomEdge()
+    $this.DetectLeftEdge()
+    $this.DetectRightEdge()
+  }
+
+  [void]DetectTopEdge() {
+    if ($this.GetTopEdge() -lt $this.RenderY) {
+      $this.Map = $this.NewChunk() + $this.Map
+      $this.Height++
+      $this.Position += $this.Width
+    }
+  }
+  [void]DetectBottomEdge() {
+    if ($this.GetBottomEdge() -lt $this.RenderY) {
+      $this.Map = $this.Map + $this.NewChunk()
+      $this.Height++
+    }
+  }
+  [void]DetectLeftEdge() {
+    if ($this.GetLeftEdge() -lt $this.RenderX) {
+      $newMap = ''
+      for ($i = 0; $i -lt $this.Height; $i++) {
+        $newMap += $this.NewPatch()
+        $newMap += $this.Map.Substring($i * $this.Width, $this.Width)
+      }
+      $this.Width++
+      $this.Position = $this.Position + $this.GetTopEdge() + 1
+      $this.Map = $newMap
+    }
+  }
+  [void]DetectRightEdge() {
+    if ($this.GetRightEdge() -lt $this.RenderX) {
+      $newMap = ''
+      for ($i = 0; $i -lt $this.Height; $i++) {
+        $newMap += $this.Map.Substring($i * $this.Width, $this.Width)
+        $newMap += $this.NewPatch()
+      }
+      $this.Width++
+      $this.Position = $this.Position + $this.GetTopEdge()
+      $this.Map = $newMap
+    }
+  }
+
+  [void]MoveUp() { $this.Position -= $this.Width }
+  [void]MoveDown() { $this.Position += $this.Width }
+  [void]MoveLeft() { $this.Position-- }
+  [void]MoveRight() { $this.Position++ }
 }
 
 Function NewMap() {

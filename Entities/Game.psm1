@@ -13,6 +13,7 @@ class Game {
     N     = 78
     E     = 69
     R     = 82
+    L     = 108
     H     = 72
     UP    = 38
     DOWN  = 40
@@ -39,17 +40,31 @@ class Game {
   }
 
   [void]GameLoop($h) {
+    $End = $false
     do {
       $this.Map.Draw()
       $this.WriteMessage()
       Write-Host 'Press w,a,s,d to move or h for help' -ForegroundColor White
       $this.ReadKey($h)
 
-      if ($this.Key -eq $this.Keymap.N) { $this.Map.Generate() }
-      elseif ($this.Key -eq $this.Keymap.R) { $this.Map.Load() }
-      elseif ($this.Key -eq $this.Keymap.S) { $this.Map.Save() }
-      elseif ($this.Key -eq $this.Keymap.H) { $this.Message = 1 }
-    } until ($this.Key -eq $this.Keymap.ESC -or $this.Key -eq $this.Keymap.Q)
+      switch ($this.Key) {
+        $this.Keymap.N { $this.Map.New() }
+        $this.Keymap.R { $this.Map.Load() }
+        $this.Keymap.L { $this.Map.Load() }
+        $this.Keymap.S { $this.Map.Save() }
+        $this.Keymap.H { $this.Message = 1 }
+        $this.Keymap.UP { $this.Map.MoveUp() }
+        $this.Keymap.DOWN { $this.Map.MoveDown() }
+        $this.Keymap.LEFT { $this.Map.MoveLeft() }
+        $this.Keymap.RIGHT { $this.Map.MoveRight() }
+        $this.Keymap.W { $this.Map.MoveUp() }
+        $this.Keymap.A { $this.Map.MoveLeft() }
+        $this.Keymap.S { $this.Map.MoveDown() }
+        $this.Keymap.D { $this.Map.MoveRight() }
+        $this.Keymap.ESC { $End = $true }
+        $this.Keymap.Q { $End = $true }
+      }
+    } until ($End)
   }
 
   [void]EndScreen($h) {
