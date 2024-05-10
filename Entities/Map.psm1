@@ -1,6 +1,7 @@
 class Map {
   Map() {
     $this.Path = Join-Path $PSScriptRoot 'save'
+		$this._GetSettings()
     $this.RenderWidth = $this.RenderX * 2 + 1
     $this.RenderHeight = $this.RenderY * 2 + 1
     $this.Load()
@@ -16,10 +17,18 @@ class Map {
   [int]$RenderWidth = $null
   [int]$RenderHeight = $null
 
-  [int]$RenderX = 5
-  [int]$RenderY = 4
-  [array]$Terrain = '   ', '[#]', '[o]', '[+]', '[*]', 'Null' # Random number generator never returns last element, so it's unused
+  [int]$RenderX = $null
+  [int]$RenderY = $null
+  [array]$Terrain = $null # Random number generator never returns last element, so it's unused
   [array]$Frame = @()
+
+	[void]_GetSettings() {
+		$Settings = Get-Content -Path (Join-Path $PSScriptRoot 'Settings.json') | ConvertFrom-Json
+
+		$this.RenderX = $Settings.RenderX
+		$this.RenderY = $Settings.RenderY
+		$this.Terrain = $Settings.Terrain + $null
+	}
 
   [void]Load() {
     if (Test-Path -Path $this.Path) {
