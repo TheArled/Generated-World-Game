@@ -39,15 +39,14 @@ class Game {
     do {
       $this.Map.Draw()
       $this._WriteMessage()
-      Start-Sleep -Milliseconds 1 # Prevents player to pass through walls when moving too fast
       Write-Host 'Press w,a,s,d to move or h for help' -ForegroundColor White
       $this._ReadKey($h)
 
       switch ($this.Key) {
-        $this.Keymap.N { $this.Map.New() }
-        $this.Keymap.R { $this.Map.Load() }
-        $this.Keymap.L { $this.Map.Load() }
-        $this.Keymap.S { $this.Map.Save() }
+        $this.Keymap.N { $this.Message = $this.Map.New() }
+        $this.Keymap.R { $this.Message = $this.Map.Load() }
+        $this.Keymap.L { $this.Message = $this.Map.Load() }
+        $this.Keymap.S { $this.Message = $this.Map.Save() }
         $this.Keymap.H { $this.Message = 1 }
         $this.Keymap.UP { $this.Message = $this.Map.MoveUp() }
         $this.Keymap.DOWN { $this.Message = $this.Map.MoveDown() }
@@ -69,19 +68,16 @@ class Game {
   }
 
   [void]_ReadKey($h) {
-    $this.Key = $null
     $this.Key = $h.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown").VirtualKeyCode
   }
 
   [void]_WriteMessage() {
     switch ($this.Message) {
-      1 {
-        Write-Host 'Move: w, a, s, d' -ForegroundColor Yellow
-        Write-Host 'Quit/New: q, n' -ForegroundColor Yellow
-        Write-Host 'Save/Load: e, r' -ForegroundColor Yellow
-        Write-Host 'Help: h' -ForegroundColor Yellow
-      }
+      1 { Write-Host "Move: w, a, s, d`r`nQuit/New: q, n`r`nSave/Load: e, r`r`nHelp: h" -ForegroundColor Yellow }
       2 { Write-Host 'You ran into a wall; Ouch!' -ForegroundColor Yellow }
+      3 { Write-Host 'New map created' -ForegroundColor Yellow }
+      4 { Write-Host 'Map saved' -ForegroundColor Yellow }
+      5 { Write-Host 'Map loaded' -ForegroundColor Yellow }
     }
     $this.Message = $null
   }

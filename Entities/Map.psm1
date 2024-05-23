@@ -30,7 +30,7 @@ class Map {
 		$this.Terrain = $Settings.Terrain + $null
 	}
 
-  [void]Load() {
+  [int]Load() {
     if (Test-Path -Path $this.Path) {
       $Data = (Get-Content -Path $this.Path) -Split $this.Separator
       $this.Width = $Data[0]
@@ -39,15 +39,17 @@ class Map {
       $this.Map = $Data[3]
     }
     else { $this.New() }
+    return 5
   }
-  [void]Save() {
-    Set-Content -Path $this.Path -Value ($this.Width, $this.Height, $this.Position, $this.Map -Join $this.Separator) 
+  [int]Save() {
+    Set-Content -Path $this.Path -Value ($this.Width, $this.Height, $this.Position, $this.Map -Join $this.Separator)
+    return 4
   }
 
-  [void]New() {
+  [int]New() {
     $this.Map = ''
-    $this.Width = $this.RenderWidth
-    $this.Height = $this.RenderHeight
+    $this.Width = $this.RenderWidth * 6
+    $this.Height = $this.RenderHeight * 6
     $this.Position = ($this.Width * $this.Height - 1) / 2
     for ($y = 0; $y -lt $this.Height; $y++) {
       for ($x = 0; $x -lt $this.Width; $x++) {
@@ -55,6 +57,7 @@ class Map {
         else { $this.Map += $this._NewPatch() }
       }
     }
+    return 3
   }
 
   [string]_NewChunk() {
